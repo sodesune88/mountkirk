@@ -4,7 +4,7 @@
 
 Login to [GCP console](https://console.cloud.google.com), create a new project, launch cloud shell, then:
 
-    $ git clone https://github.com/sodesune/mountkirk
+    $ git clone https://github.com/sodesune88/mountkirk
     $ cd mountkirk
     $ make
 
