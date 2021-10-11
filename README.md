@@ -41,7 +41,7 @@ Specifically, it enables (see <https://www.fairwinds.com/blog/hands-on-with-agon
 - Management of gameservers (pods, in k8s parlance) life cycle - ensure they will not be drained/ killed (eg autoscale down) during game play.
 - DynamicPort allocation - mitigates the possibility of ports exhaustion due to frequent start/ stop of gameservers (a typical mulitplayer game session lasts a few minutes up to hours).
 
-[Google Cloud Game Servers](https://cloud.google.com/game-servers) fully manages Agones. It makes gameservers deployment in a **multi-clusters** environment a breeze. For eg, when new k8s cluster is added to a [realm](https://cloud.google.com/game-servers/docs/concepts/overview#realm), a new fleet (deployment, in k8s parlance) will be automatically deployed to the new cluster.
+[Google Cloud Game Servers](https://cloud.google.com/game-servers) fully manages Agones. It makes gameservers deployment in **multi-clusters** environment a breeze. For eg, when new k8s cluster is added to a [realm](https://cloud.google.com/game-servers/docs/concepts/overview#realm), a new fleet (deployment, in k8s parlance) will be automatically deployed to the new cluster.
 
 For overview of cloud game infrastructure, see [here](https://cloud.google.com/architecture/cloud-game-infrastructure).
 
@@ -203,7 +203,7 @@ Agones provides [agones-allocator service](https://cloud.google.com/game-servers
 
 A RESTful example is described [here](https://agones.dev/site/docs/advanced/allocator-service/#using-rest).
 
-Agones/GCGS introduces [realm](https://cloud.google.com/game-servers/docs/concepts/overview#realm) for latency considerations. A realm represents a group of clusters (from regions/zones) whereby latency differencies are small - eg US, Japan, Europe. So players from within the same realm get connected to gameservers (of clusters) inside the same realm and play against one another.
+Agones/GCGS introduces [realm](https://cloud.google.com/game-servers/docs/concepts/overview#realm) for latency considerations. A realm represents a group of clusters (from regions/zones) whereby latency differences are small - eg US, Japan, Europe. So players from within the same realm get connected to gameservers (of clusters) inside the same realm and play against one another.
 
 ## Availablility/ Failover/ Disaster recovery
 
