@@ -4,9 +4,9 @@
 
 Login to [GCP console](https://console.cloud.google.com), create a new project, launch cloud shell, then:
 
-    $ git clone https://github.com/sodesune88/mountkirk
-    $ cd mountkirk
-    $ make
+    git clone https://github.com/sodesune88/mountkirk
+    cd mountkirk
+    make
 
 This setup [Google Cloud Game Servers](https://cloud.google.com/game-servers) using [Xonotic](https://xonotic.org/) as example.
 
@@ -15,18 +15,18 @@ It also setup telemetry:
 
 To simulate random headless xonotic clients connecting the gameserver:
 
-    $ make simulation
+    make simulation
 
 To demo development (modify xonotic server.cfg in gcr.io):
 
-    $ make dev
+    make dev
 
 To clean up **(Caution: this also removes ALL storage resources, if exists earlier)**:
 
-    $ make clean
-    $ make veryclean (optional)
+    make clean
+    make veryclean (optional)
 
-**Note: Many cloud shell commands used here takes a long time to complete. Please be patient!**
+**Note: Many cloud shell commands used here will take a long time to complete. Please be patient!**
 
 ## Details
 
@@ -34,27 +34,28 @@ To clean up **(Caution: this also removes ALL storage resources, if exists earli
 
 ### GKE/ Agones/ GCGS
 
-Google Cloud Game Servers (GCGS) is recommended for Mountkirk Games. It fully manages [Agones](https://agones.dev/site/), an open source game server management project that runs on k8s. It automatically scales fleet for daily peaks, game events, or content drops, and easily manage multiple versions of server code.
+[Agones](https://agones.dev/site/) is an open source platform, for deploying, hosting, scaling, and orchestrating dedicated game servers for large scale multiplayer/ low-latency games. It is native to k8s. 
 
-Why Agones? As this [blog](https://www.fairwinds.com/blog/hands-on-with-agones-google-cloud-game-servers) summerizes:
+Specifically, it enables (see <https://www.fairwinds.com/blog/hands-on-with-agones-google-cloud-game-servers>):
 
-> 1. The fact that the gameserver pod must be uninterrupted during a specified time means that we can't go killing the pod because of autoscaling, draining, or any other reason. In order to handle this, the gameserver manages the pod lifecycle in a way that a deployment never could. Agones introduces several states for the gameserver, and the game code itself is able to update that status via the Agones API ...
->
-> 2. This is also an issue when running multiple gameservers in Kubernetes due to the possibility of port exhaustion. We need a way to allocate a lot of different ports that can be used by the gameservers. Agones handles this seamlessly with its DynamicPort allocation strategy ...
+- Management of gameservers (pods, in k8s parlance) life cycle - ensure they will not be drained/ killed (eg autoscale down) during game play.
+- DynamicPort allocation - mitigates the possibility of ports exhaustion due to frequent start/ stop of gameservers (a typical mulitplayer game session lasts a few minutes up to hours).
 
-For overview of cloud game intra, see [here](https://cloud.google.com/architecture/cloud-game-infrastructure).
+[Google Cloud Game Servers](https://cloud.google.com/game-servers) fully manages Agones. It makes gameservers deployment in a **multi-clusters** environment a breeze. For eg, when new k8s cluster is added to a [realm](https://cloud.google.com/game-servers/docs/concepts/overview#realm), a new fleet (deployment, in k8s parlance) will be automatically deployed to the new cluster.
+
+For overview of cloud game infrastructure, see [here](https://cloud.google.com/architecture/cloud-game-infrastructure).
 
 ```bash
-$ make
+make
 ```
 
-This creates GCGS using Xonotic as example. See: <https://cloud.google.com/architecture/deploying-xonotic-game-servers>
+This creates GCGS using Xonotic as example. See <https://cloud.google.com/architecture/deploying-xonotic-game-servers>
 
 ### Game analytics/ telemetry 
 
 The above also setup gaming analytics telemetry as described [here](https://cloud.google.com/architecture/mobile-gaming-analysis-telemetry). Real-time events from xonotic server is captured by cloud logging (aka stackdriver logging), then > pubsub > dataflow > bigquery.
 
-[stackdriverdataflowbigquery.py](./stackdriverdataflowbigquery.py) (adapter from: [here](https://github.com/GoogleCloudPlatform/dialogflow-log-parser-dataflow-bigquery/blob/master/stackdriverdataflowbigquery.py)) illustrates how dataflow job is used to filter + transform:
+[stackdriverdataflowbigquery.py](./stackdriverdataflowbigquery.py) (adapted from: [here](https://github.com/GoogleCloudPlatform/dialogflow-log-parser-dataflow-bigquery/blob/master/stackdriverdataflowbigquery.py)) illustrates how dataflow job is used to filter + transform:
 
 ```python
 def myfilter(d):
@@ -117,17 +118,34 @@ cd path\to\xonotic
 xonotic.exe +connect <server-ip:port> +_cl_name player123
 ```
 
+(Optional parameters: `+vid_fullscreen 0 +vid_width 1024 +vid_height 768 +mastervolume 0`)
+
 ### Simulation
 
 ```bash
 make simulation
 ```
 
-This generates 15 random headless xonotic clients *(in cloud shell)* in 5 mins connecting/disconnecting to gameserver. The events take some time (*few minutes*) to show up in bigquery (only initially). Data studio can be further used to plot connection vs timeseries graph.
+This generates 15 random *headless* xonotic clients connecting/ disconnecting to gameserver in 5 mins. Each client session lasts 20-30s randomly. Xvfb is used to enable headless execution in cloud shell.
+
+Cloud shell currenly provides ~ 8 GB mem; each xonotic client requires ~1 GB mem.
+
+[Accordingly](https://wenku.baidu.com/view/68f1853a580216fc700afd74.html), we expect:
+
+- Ave concurrency (C) ~= 15*25/300 = 1.25
+- Max concurrency (3 sigma CI) ~= C + 3 * sqrt(C) = 4.6
+
+To play with different values:
+
+```bash
+make simulation NUM_PLAYERS=xx DURATION=yyy
+```
+
+The data takes *a few minutes* to show up in bigquery (only for initial run). Data studio can be further used to plot connection timeseries graph.
 
 ### Dev/ CD-CI
 
-See discussion [here](https://cloud.google.com/architecture/continuous-delivery-jenkins-kubernetes-engine).
+See [here](https://cloud.google.com/architecture/continuous-delivery-jenkins-kubernetes-engine) for k8s using Jenkins.
 
 ```bash
 make dev
@@ -171,9 +189,39 @@ Upon completion, new **server ip:port** will be allocated. Launch your local xon
 
 *(Note: for unknown reason/s related to xonotic, you may need to launch xonotic client a couple of times...)*
 
-# Other useful refs
+# Other discussions
 
-- <https://www.youtube.com/watch?v=UFZCnhJtYd8>
+## Load balancer
+
+Unlike regular GKE, whereby **all** external traffic is routed thru LB, Agones exposes the gameservers/pods **directly**. To list gameservers in a cluster for their public ip:port, run `kubectl get gameserver`.
+
+Agones provides [agones-allocator service](https://cloud.google.com/game-servers/docs/how-to/configuring-multicluster-allocation) that functions like a load balancer: 
+
+1. client connects to it (https port);
+2. the allocator replies with a gameserver (pod) ip:port that is **Ready** (within the same realm), using round robin manner;
+3. the client then proceed to connect with the gameserver **directly** (in xonotic case, the client-server comm is actually udp).
+
+A RESTful example is described [here](https://agones.dev/site/docs/advanced/allocator-service/#using-rest).
+
+Agones/GCGS introduces [realm](https://cloud.google.com/game-servers/docs/concepts/overview#realm) for latency considerations. A realm represents a group of clusters (from regions/zones) whereby latency differencies are small - eg US, Japan, Europe. So players from within the same realm get connected to gameservers (of clusters) inside the same realm and play against one another.
+
+## Availablility/ Failover/ Disaster recovery
+
+GKEs and Cloud Spanner (for real-time global leaderboard) are inherently high-available. 
+
+To improves availabilty, regional GKE ([SLA](https://cloud.google.com/kubernetes-engine/sla) 99.95%) can be used so that control planes are replicated across zones. 
+
+A regional/ multi-regional Spanner has [SLA](https://cloud.google.com/spanner) of 99.999% with database replicated across zones/regions respectively.
+
+Currently GCGS is in EAP/alpha/beta so no SLA (<https://cloud.google.com/game-servers/sla>).
+
+The game analytics/ telemetry is not operationally critical so provision of FO/DR may not be neccessary ("cost management is the next most important challenge"). 
+
+However, if desired it can be proposed that a "standby" telemetry pipeline be set up in blue-green deployment manner. At regular interval, say every 10s, a specially crafted "health-check" message is published via pubsub and we expect it to land in bigquery. And if that fails by certain threshold, the cloud logging sink is then switched over to the standby pubsub/ pipeline.
+
+# Other refs
+
+- <https://www.youtube.com/watch?v=pHE3rKku8jw>
 - <https://www.youtube.com/watch?v=L_-1-8c3qrw>
 - <https://www.youtube.com/watch?v=1w1olPjlPZY>
 
