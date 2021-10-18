@@ -57,7 +57,7 @@ log:
 
 # To show gamerserver's ip:port - kubectl get gameserver
 info:
-	@cat .info
+	kubectl get gameserver -o json | jq -r '.items[].status | select(.state == "Ready") | "\(.address):\(.ports[0].port)"'
 
 xonotic-0.8.2.zip:
 	@echo "Downloading xonotic files..."
